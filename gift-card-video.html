@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <title>Love Card Video</title>
+  <style>
+    body {margin:0; overflow:hidden; background:#ffe0f0; font-family:sans-serif;}
+    canvas {position:fixed; inset:0;}
+    .card {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.9);
+      padding: 25px;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 300px;
+      animation: fadeIn 1.5s ease;
+      z-index: 10;
+    }
+    .card img {width:100%; height:200px; object-fit:cover; border-radius:12px;}
+    .card h1 {margin:15px 0 10px; color:#e91e63; font-size:24px;}
+    .card p {color:#444; font-size:16px;}
+    @keyframes fadeIn {from {opacity:0; transform: translate(-50%, -40%);} to {opacity:1; transform: translate(-50%, -50%);}}
+    #controls {position: fixed; top: 20px; left: 20px; z-index: 20;}
+    #controls button {margin-right: 10px; padding:10px 15px; font-size:16px; border:none; border-radius:8px; cursor:pointer;}
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div class="card">
+    <img src="https://i.postimg.cc/pX8GNhND/Snapchat-234087351.jpg" alt="Her Photo">
+    <h1>For My Love ❤️</h1>
+    <p>Tum meri zindagi ki sabse khoobsurat wajah ho 💕</p>
+  </div>
+
+  <div id="controls">
+    <button id="startBtn">Start Animation</button>
+    <button id="recordBtn">Start Recording</button>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bgMusic" loop>
+    <source src="https://www.bensound.com/bensound-music/bensound-romantic.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let w = canvas.width = innerWidth;
+    let h = canvas.height = innerHeight;
+    window.onresize = ()=>{w=canvas.width=innerWidth;h=canvas.height=innerHeight};
+
+    class Heart{
+      constructor(){ this.reset(); }
+      reset(){this.x=Math.random()*w; this.y=h+20; this.vy=Math.random()*2+1; this.size=Math.random()*20+10;}
+      update(){this.y-=this.vy; if(this.y<-30) this.reset();}
+      draw(){
+        ctx.save();
+        ctx.translate(this.x,this.y);
+        ctx.scale(this.size/50,this.size/50);
+        ctx.beginPath();
+        ctx.moveTo(0,-12);
+        ctx.bezierCurveTo(12,-42,58,-42,58,-6);
+        ctx.bezierCurveTo(58,26,28,46,0,70);
+        ctx.bezierCurveTo(-28,46,-58,26,-58,-6);
+        ctx.bezierCurveTo(-58,-42,-12,-42,0,-12);
+        ctx.fillStyle="rgba(255,100,150,0.8)";
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    const hearts = Array.from({length:40},()=>new Heart());
+    let running = false;
+
+    function render(){
+      if(!running) return;
+      ctx.clearRect(0,0,w,h);
+      hearts.forEach(h=>{h.update();h.draw();});
+      requestAnimationFrame(render);
+    }
+
+    // === Buttons ===
+    document.getElementById('startBtn').onclick = ()=>{
+      if(!running){running=true; render();}
+      document.getElementById('bgMusic').play();
+    }
+
+    // === Recording ===
+    let mediaRecorder, recordedChunks = [];
+    document.getElementById('recordBtn').onclick = async ()=>{
+      const stream = canvas.captureStream(60); // 60 FPS
+      const audio = document.getElementById('bgMusic');
+      const audioStream = audio.captureStream();
+      const combined = new MediaStream([...stream.getTracks(), ...audioStream.getTracks()]);
+
+      mediaRecorder = new MediaRecorder(combined);
+      recordedChunks = [];
+
+      mediaRecorder.ondataavailable = e => {if(e.data.size>0) recordedChunks.push(e.data);}
+      mediaRecorder.onstop = ()=>{
+        const blob = new Blob(recordedChunks,{type:'video/webm'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'love-card.webm';
+        a.click();
+      };
+
+      mediaRecorder.start();
+      alert('Recording started! Press OK and enjoy the animation. After some time click "Stop Recording" to download.');
+
+      // Change record button to stop
+      const recBtn = document.getElementById('recordBtn');
+      recBtn.textContent = 'Stop Recording';
+      recBtn.onclick = ()=>{mediaRecorder.stop(); recBtn.textContent='Start Recording';};
+    }
+  </script>
+</body>
+</html>
